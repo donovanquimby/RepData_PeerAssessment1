@@ -5,11 +5,7 @@ output:
     keep_md: yes
 ---
 
-```{r opts, echo = FALSE}
-knitr::opts_chunk$set(
-  fig.path = "figures/"
-)
-```
+
 
 
 ![](instructions_fig/ReportingData.jpg)
@@ -38,18 +34,18 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 
 The `dplyr`, `plotly`, and `ggplot2` are loaded as an initial step. Then the data is loaded and unzipped from the "activity.zip" file. the data is assigned to a variable named `data` and a variable named `byDay` which is grouped by date using the `group_by` function.
 
-```{r, message=FALSE}
+
+```r
 library(dplyr)
 library(plotly)
 library(ggplot2)
 ```
 
-```{r readData}
 
+```r
 data <- read.csv(unz("activity.zip", "activity.csv"), header = TRUE,
                  sep = ",") 
 byDay <- data %>% group_by(date) 
-
 ```
 
 
@@ -58,20 +54,18 @@ byDay <- data %>% group_by(date)
 
 The mean total number of steps taken per day is calculated by summarizing the summed data in the `byDate` variable which is grouped by `date`. The `mean` and `median` of the total number of steps is also calculated.
 
-```{r totalStepsPerDay}
 
+```r
 sumByDay <- byDay %>% summarise(sum = sum(steps, na.rm = TRUE))
 dayMean <- mean(sumByDay$sum)
 dayMedian <- median(sumByDay$sum)
-
 ```
 
 A histogram of the total number of steps taken per day can be found below. The calculated 
-mean steps per day is `r as.integer(dayMean)` and the calculated median steps per day is `r as.integer(dayMedian)`.
-
-```{r histogram1, echo = TRUE}
+mean steps per day is 9354 and the calculated median steps per day is 10395.
 
 
+```r
 p1 <- ggplot(sumByDay, aes (x=sum)) +
         geom_histogram(binwidth = 1000, color = "black", fill = "blue") +
         geom_vline(aes(xintercept=mean(sum),color="mean"),
@@ -84,9 +78,9 @@ p1 <- ggplot(sumByDay, aes (x=sum)) +
              y = "Number of Days")
 
 p1
-
-
 ```
+
+![](figures/histogram1-1.png)<!-- -->
 
 ## What is the average daily activity pattern?
 
@@ -95,17 +89,16 @@ the original data by `interval` and summarizing by the `mean` for the total numb
 each interval as shown in the code below. A line plot of the average 
 steps per interval is also shown below. the maximum value is represented by a yellow diamond.
 
-```{r dailyActivityPattern}
 
- 
+```r
 avg5min <- data %>% group_by(interval) %>% summarise(avg = mean(steps, na.rm = TRUE))
 
 maxAverageInterval <- max(avg5min$avg)
 locationMax <- which.max(avg5min$avg)
-
 ```
 
-```{r plotDailyActivtyPattern}
+
+```r
 p2 <- ggplot(data = avg5min, aes(x = interval, y = avg, group = 1)) + 
         geom_line( size = 1, colour = 'blue') +
         geom_point(size = 2, colour = 'red', shape=21, fill="white") +
@@ -115,37 +108,38 @@ p2 <- ggplot(data = avg5min, aes(x = interval, y = avg, group = 1)) +
         labs(title="Average Steps Per 5-Minute Time Interval", x="5 Minute time interval", 
              y = "Average Number of Steps")
 p2
-
 ```
 
+![](figures/plotDailyActivtyPattern-1.png)<!-- -->
+
 The maximum mean value of steps was determined to occure in the 
-`r as.integer(avg5min$interval[locationMax])` 5-minute interval with a value of 
-`r as.integer(maxAverageInterval)`.
+835 5-minute interval with a value of 
+206.
 
 ## Imputing missing values
 
 The code below uses na.aggregate from the "zoo" package to replace the missing 
 steps data. In this case, The `na.aggregate` function works by replacing each `NA` in the input object by the `median`, or any other defined function, of it's group, which in this case is the `interval`. The sum of the total number of steps is calculated and the mean and median values of the sums are determined.
 
-```{r loadZooLibrary, message=FALSE}
+
+```r
 library(zoo)
 ```
 
-```{r, imputing missing data}
+
+```r
 imputedData <- data %>% mutate(steps = na.aggregate(steps, by = interval,FUN = median))
 
 sumByDay2 <- imputedData %>% group_by(date) %>% 
         summarise(sum = sum(steps))
 dayMean2 <- mean(sumByDay2$sum)
 dayMedian2 <- median(sumByDay2$sum)
-
-
 ```
 
-A histgram of the total number of steps per day using the new imputed data set is made and the mean and median values are determined to be `r as.integer(dayMean2)` and `r as.integer(dayMedian2)` respectively.
+A histgram of the total number of steps per day using the new imputed data set is made and the mean and median values are determined to be 9503 and 10395 respectively.
  
-```{r histogramOfImputedData}
 
+```r
 p3 <- ggplot(sumByDay2, aes (x=sum)) +
         geom_histogram(binwidth = 1000, color = "black", fill = "blue") +
         geom_vline(aes(xintercept=mean(sum),color="mean"),
@@ -157,20 +151,22 @@ p3 <- ggplot(sumByDay2, aes (x=sum)) +
         labs(title="Total Steps Per Day Histogram Plot (Imputed Data)",x="Steps Per Day", 
              y = "Number of Days")
 p3
-
-
 ```
+
+![](figures/histogramOfImputedData-1.png)<!-- -->
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 The `lubridate` and `stringr` packages are loaded
-```{r loadLubridataStrinr, message=FALSE}
+
+```r
 library(lubridate)
 library(stringr)
 ```
 A variable `date` is converted into a date class using the `as.Date` function. Then a variable, `day` is added which contains the decriptive name of the day of the week. The names in day are converted into logicals of `TRUE` for weekends and `False` for weekdays. The logicals are then renamed `weekday` or `weekend` and turned into factors based on there logical value. The average number of steps taken per 5 minute interval is then calculated for both weekend and weekdays.  
 
-```{r convertDates}
+
+```r
 dataDate <- data %>% mutate(date = as.Date(date, format = "%Y-%m-%d")) 
 daysOfWeek <- dataDate %>% mutate(day = weekdays(date, abbreviate = FALSE)) %>%
         mutate(type = str_detect(day, "Saturday|Sunday")) %>%
@@ -182,21 +178,19 @@ weekdays <- daysOfWeek %>% filter(type == "weekday") %>% group_by(interval) %>%
 
 weekend <- daysOfWeek %>% filter(type == "weekend") %>% group_by(interval) %>%
         summarise(avg = mean(steps, na.rm = TRUE))
-
 ```
 
 A plot of the average number of steps taken per 5-minute interval for the weekend
 and weekdays can be seen the panel plot below. In order to help determine if there are differences in the patterns, a line was fit to the data using the `geom_smooth` function with a `span = .25` to each plot. Comparing the fitted line suggests that on the weekend, people are walking less earlier in the day and more during the middle and latter part of the day.  
 
-```{r loadGridExtra, message=FALSE}
-library("gridExtra")
 
+```r
+library("gridExtra")
 ```
 
 
-```{r panelPlotWeekdaysWeekends,  fig.width = 10, message=FALSE, warning=FALSE}
 
-
+```r
 p4a <- qplot(interval, avg, data = weekdays,alpha = I(1/1000)) + geom_line( size = .5, colour = 'firebrick') +
         labs(title="Average Steps Per 5-Minute Time Interval Weekday", x="5 Minute time interval", 
              y = "Average Number of Steps") + geom_smooth(span = 0.25) + ylim(0,225)
@@ -207,8 +201,9 @@ p4b <- qplot(interval, avg, data = weekend, alpha = I(1/1000)) + geom_line( size
 
 
 p4c <- grid.arrange(p4a,p4b,ncol=2)
-
 ```
+
+![](figures/panelPlotWeekdaysWeekends-1.png)<!-- -->
 
 
 
